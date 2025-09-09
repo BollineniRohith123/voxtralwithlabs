@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 echo "🚀 Starting Voxtral 3B Real-Time Streaming Service (No Docker)..."
@@ -23,14 +23,9 @@ apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Resolve application directory (supports both /app and /workspace/... layouts)
-APP_DIR_CANDIDATES=(
-    "${APP_DIR:-}"
-    "/app"
-    "/workspace/voxtralwithlabs"
-    "/workspace"
-)
+APP_DIR_CANDIDATES="${APP_DIR:-} /app /workspace/voxtralwithlabs /workspace"
 
-for d in "${APP_DIR_CANDIDATES[@]}"; do
+for d in $APP_DIR_CANDIDATES; do
     if [ -n "$d" ] && [ -d "$d/src" ]; then
         APP_DIR="$d"
         break
@@ -67,7 +62,7 @@ cd "$APP_DIR"
 # Determine uvicorn binary
 UVICORN_BIN=${UVICORN_BIN:-/app/venv/bin/uvicorn}
 if [ ! -x "$UVICORN_BIN" ]; then
-    UVICORN_BIN=$(python3 -c 'import shutil,sys; p=shutil.which("uvicorn"); print(p or "")' || true)
+    UVICORN_BIN=$(python3 -c 'import shutil,sys; p=shutil.which("uvicorn"); print(p or "")' 2>/dev/null || true)
 fi
 if [ -z "$UVICORN_BIN" ]; then
     echo "❌ uvicorn not found. Ensure dependencies are installed and/or set UVICORN_BIN."
