@@ -22,16 +22,6 @@ apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a virtual environment
-python3.11 -m venv /app/venv
-. /app/venv/bin/activate
-
-# Upgrade pip (best-effort; pip may already be available)
-pip install --upgrade pip || true
-
-# Install Python dependencies
-pip install --no-cache-dir -r requirements.txt
-
 # Resolve application directory (supports both /app and /workspace/... layouts)
 APP_DIR_CANDIDATES=(
     "${APP_DIR:-}"
@@ -51,6 +41,16 @@ if [ -z "$APP_DIR" ]; then
     echo "❌ Could not find application directory containing src/. Set APP_DIR and retry."
     exit 1
 fi
+
+# Create a virtual environment
+python3.11 -m venv /app/venv
+. /app/venv/bin/activate
+
+# Upgrade pip (best-effort; pip may already be available)
+pip install --upgrade pip || true
+
+# Install Python dependencies
+pip install --no-cache-dir -r "$APP_DIR/requirements.txt"
 
 # Set environment variables
 export PYTHONPATH="$APP_DIR/src:$PYTHONPATH"
