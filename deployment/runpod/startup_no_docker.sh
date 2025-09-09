@@ -24,7 +24,7 @@ apt-get update && apt-get install -y \
 
 # Create a virtual environment
 python3.11 -m venv /app/venv
-source /app/venv/bin/activate
+. /app/venv/bin/activate
 
 # Upgrade pip (best-effort; pip may already be available)
 pip install --upgrade pip || true
