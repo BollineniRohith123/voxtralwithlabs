@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxtral 3B Real-Time Streaming Client</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 1rem 2rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff4444;
+        }
+
+        .status-dot.connected { background: #44ff44; }
+        .status-dot.processing { background: #ffaa00; }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            padding: 2rem;
+            gap: 2rem;
+        }
+
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .right-panel {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card h3 {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .audio-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover { background: #0056b3; }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover { background: #a71e2a; }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover { background: #1e7e34; }
+
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .audio-visualizer {
+            height: 100px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .waveform {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .conversation-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-y: auto;
+            max-height: 400px;
+            margin-bottom: 1rem;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            background: rgba(0, 123, 255, 0.3);
+            margin-left: auto;
+        }
+
+        .message.assistant {
+            background: rgba(40, 167, 69, 0.3);
+        }
+
+        .message .timestamp {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-bottom: 0.25rem;
+        }
+
+        .text-input-area {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .text-input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+        }
+
+        .text-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .metrics {
+            font-size: 0.9rem;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .settings-group {
+            margin-bottom: 1rem;
+        }
+
+        .settings-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .slider {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle-switch.active {
+            background: #007bff;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(26px);
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+                padding: 1rem;
+            }
+
+            .right-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎙️ Voxtral 3B Real-Time Streaming</h1>
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="connectionStatus"></div>
+                <span id="connectionText">Disconnected</span>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot" id="audioStatus"></div>
+                <span id="audioText">No Audio</span>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot" id="processingStatus"></div>
+                <span id="processingText">Idle</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="left-panel">
+            <div class="card">
+                <h3>🎵 Audio Controls</h3>
+                <div class="audio-controls">
+                    <div class="control-row">
+                        <button class="btn btn-primary" id="connectBtn">
+                            🔌 Connect
+                        </button>
+                        <button class="btn btn-danger" id="disconnectBtn" disabled>
+                            ❌ Disconnect
+                        </button>
+                        <button class="btn btn-success" id="startAudioBtn" disabled>
+                            🎤 Start Audio
+                        </button>
+                        <button class="btn btn-danger" id="stopAudioBtn" disabled>
+                            ⏹️ Stop Audio
+                        </button>
+                    </div>
+                    <div class="audio-visualizer">
+                        <canvas id="audioCanvas" width="400" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card conversation-area">
+                <h3>💬 Conversation</h3>
+                <div class="messages" id="messages"></div>
+                <div class="text-input-area">
+                    <input type="text" class="text-input" id="textInput" 
+                           placeholder="Type your message here..." disabled>
+                    <button class="btn btn-primary" id="sendTextBtn" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="card">
+                <h3>⚙️ Settings</h3>
+                <div class="settings-group">
+                    <label>VAD Sensitivity</label>
+                    <input type="range" class="slider" id="vadSensitivity" 
+                           min="0" max="3" value="2">
+                    <small id="vadValue">2</small>
+                </div>
+                <div class="settings-group">
+                    <label>Audio Quality</label>
+                    <select class="text-input" id="audioQuality">
+                        <option value="16000">16 kHz (Standard)</option>
+                        <option value="22050">22 kHz (High)</option>
+                        <option value="44100">44 kHz (Very High)</option>
+                    </select>
+                </div>
+                <div class="settings-group">
+                    <label>
+                        <input type="checkbox" id="noiseReduction" checked>
+                        Noise Reduction
+                    </label>
+                </div>
+                <div class="settings-group">
+                    <label>
+                        <input type="checkbox" id="autoGain" checked>
+                        Auto Gain Control
+                    </label>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📊 Metrics</h3>
+                <div class="metrics" id="metrics">
+                    <div class="metric-row">
+                        <span>Latency:</span>
+                        <span id="latencyMetric">--</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>Messages:</span>
+                        <span id="messageCount">0</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>Audio Level:</span>
+                        <span id="audioLevel">--</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>Connection:</span>
+                        <span id="connectionTime">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🔧 Debug</h3>
+                <div style="font-size: 0.8rem; font-family: monospace;">
+                    <div id="debugInfo">
+                        <div>Session: <span id="sessionId">--</span></div>
+                        <div>Client: <span id="clientId">--</span></div>
+                        <div>WebRTC: <span id="webrtcStatus">--</span></div>
+                        <div>Audio Context: <span id="audioContextStatus">--</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/webrtc-client.js"></script>
+    <script src="js/audio-processor.js"></script>
+</body>
+</html>
