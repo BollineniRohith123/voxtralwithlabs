@@ -19,14 +19,13 @@ from models.voxtral_inference import VoxtralInferenceEngine
 from streaming.websocket_manager import WebSocketManager
 from streaming.session_manager import SessionManager
 from streaming.queue_manager import QueueManager
-from audio.processor import AudioProcessor
+from audio.audio_processor import AudioProcessor
 from utils.config import Config
 from utils.logging_config import setup_logging
 from utils.metrics import MetricsCollector
 
 # Initialize logging
 logger = setup_logging()
-from audio.audio_processor import AudioProcessor
 # Metrics
 connection_counter = Counter('websocket_connections_total', 'Total WebSocket connections')
 active_connections = Gauge('websocket_connections_active', 'Active WebSocket connections')
