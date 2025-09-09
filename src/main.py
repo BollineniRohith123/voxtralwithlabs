@@ -26,7 +26,7 @@ from utils.metrics import MetricsCollector
 
 # Initialize logging
 logger = setup_logging()
-
+from audio.audio_processor import AudioProcessor
 # Metrics
 connection_counter = Counter('websocket_connections_total', 'Total WebSocket connections')
 active_connections = Gauge('websocket_connections_active', 'Active WebSocket connections')
