@@ -5,8 +5,28 @@ set -e
 
 echo "🚀 Starting Voxtral 3B Real-Time Streaming Service..."
 
+# Resolve application directory (supports both /app and /workspace/... layouts)
+APP_DIR_CANDIDATES=(
+    "${APP_DIR:-}"
+    "/app"
+    "/workspace/voxtralwithlabs"
+    "/workspace"
+)
+
+for d in "${APP_DIR_CANDIDATES[@]}"; do
+    if [ -n "$d" ] && [ -d "$d/src" ]; then
+        APP_DIR="$d"
+        break
+    fi
+done
+
+if [ -z "$APP_DIR" ]; then
+    echo "❌ Could not find application directory containing src/. Set APP_DIR and retry."
+    exit 1
+fi
+
 # Set environment variables
-export PYTHONPATH="/app/src:$PYTHONPATH"
+export PYTHONPATH="$APP_DIR/src:$PYTHONPATH"
 export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
 export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST:-"6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0"}
 export MODEL_NAME=${MODEL_NAME:-"mistralai/Voxtral-Mini-3B-2507"}
@@ -53,10 +73,20 @@ setup_directories() {
 # Function to start the service
 start_service() {
     echo "🎬 Starting the streaming service..."
-    cd /app
+    cd "$APP_DIR"
 
-    # Start with uvicorn for production
-    exec uvicorn src.main:app \
+    # Determine uvicorn binary
+    UVICORN_BIN=${UVICORN_BIN:-/app/venv/bin/uvicorn}
+    if [ ! -x "$UVICORN_BIN" ]; then
+        UVICORN_BIN=$(python3 -c 'import shutil,sys; p=shutil.which("uvicorn"); print(p or "")' || true)
+    fi
+    if [ -z "$UVICORN_BIN" ]; then
+        echo "❌ uvicorn not found. Ensure dependencies are installed and/or set UVICORN_BIN."
+        exit 1
+    fi
+
+    # Start with uvicorn for production; use --app-dir to avoid import path issues
+    exec "$UVICORN_BIN" --app-dir ./src main:app \
         --host 0.0.0.0 \
         --port 8000 \
         --workers 1 \
